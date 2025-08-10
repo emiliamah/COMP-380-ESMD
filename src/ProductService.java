@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 
-public class ProductService {
+public class ProductService
+{
     private final ArrayList<Product> products = new ArrayList<>();
 
     public ProductService() {
@@ -16,6 +17,12 @@ public class ProductService {
         products.add(new Product(10, "Cargo Pant", 34.99, ""));
     }
 
-    public void addProduct(Product p) { products.add(p); }
-    public ArrayList<Product> getAllProducts() { return products; }
+    public void addProduct(Product p)
+    {
+        products.add(p);
+    }
+    public ArrayList<Product> getAllProducts()
+    {
+        return products;
+    }
 }
