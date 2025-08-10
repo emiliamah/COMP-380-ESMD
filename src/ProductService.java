@@ -13,7 +13,7 @@ public class ProductService {
         products.add(new Product(7, "Sweatpants", 29.99, ""));
         products.add(new Product(8, "Leggings", 24.99, ""));
         products.add(new Product(9, "Jacket", 79.99, ""));
-        products.add(new Product(10, "Cargo Pants", 34.99, ""));
+        products.add(new Product(10, "Cargo Pant", 34.99, ""));
     }
 
     public void addProduct(Product p) { products.add(p); }
