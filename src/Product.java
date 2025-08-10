@@ -1,6 +1,4 @@
-// This Product.java class serves to 'describe' what a product is to our program
-// (i.e. every product has an ID, a name, a price, and an image)...
-public class Product {
+
     private int id;
     private String name;
     private double price;
