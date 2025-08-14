@@ -12,29 +12,28 @@ import javafx.scene.control.ScrollPane;
 import javafx.stage.Stage;
 import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.control.TextField;
-
+import java.sql.*;
 import java.util.Map;
 
 public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        ProductService service = new ProductService();
+        //
+
         CartService cartService = new CartService();
 
-        // Add products to the service
-        service.addProduct(new Product(1, "White T-Shirt", 19.99, "images/white.jpg"));
-        service.addProduct(new Product(2, "Black T-Shirt", 21.99, "images/black.jpg"));
-        service.addProduct(new Product(3, "Graphic T-Shirt", 24.50, "images/graphic.jpg"));
-        service.addProduct(new Product(4, "Striped T-Shirt", 18.75, "images/striped.jpg"));
-
-        // Product View
+        // need to replace with database result
         VBox productView = new VBox(15);
         productView.setPadding(new Insets(20));
-        for (Product product : service.getAllProducts()) {
-            HBox productCard = createProductCard(product, cartService);
-            productView.getChildren().add(productCard);
+        Product[] demo = new Product[] {
+                new Product(1, "White T-Shirt", 19.99, "images/white.jpg"),
+                new Product(2, "Black T-Shirt", 21.99, "images/black.jpg"),
+                new Product(3, "Graphic T-Shirt", 24.50, "images/graphic.jpg"),
+                new Product(4, "Striped T-Shirt", 18.75, "images/striped.jpg"),
+        };
+        for (Product p : demo) {
+            productView.getChildren().add(createProductCard(p, cartService));
         }
         ScrollPane productScroll = new ScrollPane(productView);
         productScroll.setFitToWidth(true);
@@ -69,7 +68,10 @@ public class MainApplication extends Application {
                 HBox itemRow = new HBox(10);
                 itemRow.setPadding(new Insets(5));
 
-                Label label = new Label(p.getName() + " x" + quantity + " - $" + String.format("%.2f", p.getPrice() * quantity));
+                Label label = new Label(
+                        p.getProductName() + " x" + quantity + " - $" +
+                                String.format("%.2f", p.getProductPrice() * quantity)
+                );
                 label.setFont(Font.font("Arial", 14));
 
                 Button removeBtn = new Button("Remove");
@@ -82,7 +84,7 @@ public class MainApplication extends Application {
                 cartView.getChildren().add(itemRow);
             }
 
-            // Total price at bottom
+            // Total price
             Label totalLabel = new Label("Total: $" + String.format("%.2f", cartService.getTotalPrice()));
             totalLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
             totalLabel.setPadding(new Insets(10, 0, 0, 0));
@@ -125,10 +127,10 @@ public class MainApplication extends Application {
         }
 
         VBox details = new VBox(5);
-        Label name = new Label(product.getName());
+        Label name = new Label(product.getProductName());
         name.setFont(Font.font("Arial", FontWeight.BOLD, 16));
 
-        Label price = new Label(String.format("$%.2f", product.getPrice()));
+        Label price = new Label(String.format("$%.2f", product.getProductPrice()));
         price.setFont(Font.font("Arial", 14));
 
         Button addToCartBtn = new Button("Add to Cart");
@@ -147,26 +149,39 @@ public class MainApplication extends Application {
         Label title = new Label("Checkout");
         title.setFont(Font.font("Arial", FontWeight.BOLD, 20));
 
-        TextField firstNameField = new TextField();
+        javafx.scene.control.TextField firstNameField = new javafx.scene.control.TextField();
         firstNameField.setPromptText("First Name");
 
-        TextField lastNameField = new TextField();
+        javafx.scene.control.TextField lastNameField = new javafx.scene.control.TextField();
         lastNameField.setPromptText("Last Name");
 
-        TextField emailField = new TextField();
+        javafx.scene.control.TextField emailField = new javafx.scene.control.TextField();
         emailField.setPromptText("Email Address");
 
-        TextField cardNumberField = new TextField();
+        javafx.scene.control.TextField cardNumberField = new javafx.scene.control.TextField();
         cardNumberField.setPromptText("Credit Card Number");
 
-        TextField cvvField = new TextField();
+        javafx.scene.control.TextField cvvField = new javafx.scene.control.TextField();
         cvvField.setPromptText("CVV");
 
-        TextField expDateField = new TextField();
+        javafx.scene.control.TextField expDateField = new javafx.scene.control.TextField();
         expDateField.setPromptText("Expiration Date (MM/YY)");
 
         Button submitBtn = new Button("Submit Order");
         submitBtn.setOnAction(e -> {
+            String firstName = firstNameField.getText().trim();
+            String lastName  = lastNameField.getText().trim();
+            String email     = emailField.getText().trim();
+
+            // ✅ Save order + items to MySQL
+            try {
+                long orderId = saveOrderToDatabase(firstName, lastName, email, cartService);
+                System.out.println("✅ Order saved with ID: " + orderId);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            // Clear the cart after order
             cartService.clearCart();
 
             // Confirmation screen
@@ -176,7 +191,7 @@ public class MainApplication extends Application {
             message.setFont(Font.font("Arial", FontWeight.BOLD, 18));
             Button backBtn = new Button("Back to Shop");
             backBtn.setOnAction(ev -> {
-                topBar.getChildren().setAll(new Button("View Cart")); // reset button manually
+                topBar.getChildren().setAll(new Button("View Cart")); // quick reset
                 root.setTop(topBar);
                 root.setCenter(productScroll);
             });
@@ -197,6 +212,58 @@ public class MainApplication extends Application {
         );
 
         return form;
+    }
+
+   //
+
+    private long saveOrderToDatabase(String firstName,
+                                     String lastName,
+                                     String email,
+                                     CartService cartService) throws SQLException {
+        double total = cartService.getTotalPrice();
+
+        String insertOrderSql =
+                "INSERT INTO Orders (FirstName, LastName, Email, Total) VALUES (?, ?, ?, ?)";
+        String insertItemSql =
+                "INSERT INTO OrderItems (OrderId, ProductId, Quantity, UnitPrice) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = Database.getInstance().getConnection()) {
+            conn.setAutoCommit(false);
+            long orderId;
+
+            try (PreparedStatement orderPs =
+                         conn.prepareStatement(insertOrderSql, Statement.RETURN_GENERATED_KEYS)) {
+                orderPs.setString(1, firstName);
+                orderPs.setString(2, lastName);
+                orderPs.setString(3, email);
+                orderPs.setDouble(4, total);
+                orderPs.executeUpdate();
+
+                try (ResultSet keys = orderPs.getGeneratedKeys()) {
+                    if (!keys.next()) {
+                        throw new SQLException("Failed to obtain OrderId.");
+                    }
+                    orderId = keys.getLong(1);
+                }
+            }
+
+            try (PreparedStatement itemPs = conn.prepareStatement(insertItemSql)) {
+                for (Map.Entry<Product, Integer> entry : cartService.getCartItems().entrySet()) {
+                    Product p = entry.getKey();
+                    int qty = entry.getValue();
+
+                    itemPs.setLong(1, orderId);
+                    itemPs.setInt(2, p.getProductId());
+                    itemPs.setInt(3, qty);
+                    itemPs.setDouble(4, p.getProductPrice());
+                    itemPs.addBatch();
+                }
+                itemPs.executeBatch();
+            }
+
+            conn.commit();
+            return orderId;
+        }
     }
 
     public static void main(String[] args) {

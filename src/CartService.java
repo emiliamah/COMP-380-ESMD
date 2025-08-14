@@ -1,29 +1,23 @@
 import java.util.HashMap;
 import java.util.Map;
 
-public class CartService
-{
+public class CartService {
     private Map<Product, Integer> cartItems = new HashMap<>();
 
-    public void addToCart(Product product)
-    {
+    public void addToCart(Product product) {
         cartItems.put(product, cartItems.getOrDefault(product, 0) + 1);
-        System.out.println("Added to cart: " + product.getName());
+        System.out.println("Added to cart: " + product.getProductName());
     }
 
-    public void removeFromCart(Product product)
-    {
-        if (cartItems.containsKey(product))
-        {
+    public void removeFromCart(Product product) {
+        if (cartItems.containsKey(product)) {
             int quantity = cartItems.get(product);
-            if (quantity > 1)
-            {
+            if (quantity > 1) {
                 cartItems.put(product, quantity - 1);
-            } else
-            {
+            } else {
                 cartItems.remove(product);
             }
-            System.out.println("Removed from cart: " + product.getName());
+            System.out.println("Removed from cart: " + product.getProductName());
         }
     }
 
@@ -33,7 +27,7 @@ public class CartService
 
     public double getTotalPrice() {
         return cartItems.entrySet().stream()
-                .mapToDouble(entry -> entry.getKey().getPrice() * entry.getValue())
+                .mapToDouble(entry -> entry.getKey().getProductPrice() * entry.getValue())
                 .sum();
     }
 

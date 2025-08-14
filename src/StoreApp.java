@@ -68,10 +68,10 @@ public class StoreApp extends Application {
     private void updateCartDisplay() {
         StringBuilder sb = new StringBuilder();
         cartService.getCartItems().forEach((p, qty) ->
-                sb.append(p.getName())
+                sb.append(p.getProductName())
                         .append("  x").append(qty)
-                        .append("  @ $").append(String.format("%.2f", p.getPrice()))
-                        .append("  = $").append(String.format("%.2f", p.getPrice() * qty))
+                        .append("  @ $").append(String.format("%.2f", p.getProductPrice()))
+                        .append("  = $").append(String.format("%.2f", p.getProductPrice() * qty))
                         .append("\n")
         );
         cartArea.setText(sb.toString());
